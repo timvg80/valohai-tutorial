@@ -1,0 +1,23 @@
+---
+
+- step:
+    name: train-model
+    image: tensorflow/tensorflow:2.1.0-py3
+    command: python train.py {parameters}
+    inputs:
+     - name: mnist
+       default: s3://onboard-sample/tf-sample/mnist.npz
+    parameters:
+    - name: epoch
+      description: The number of epoch for the Keras model
+      type: integer
+      default: 5
+- endpoint:
+    name: digits
+    description: predict digits from image inputs
+    image: tiangolo/uvicorn-gunicorn-fastapi:python3.7
+    server-command: uvicorn predict:app --host 0.0.0.0 --port 8000
+    files:
+        - name: model
+          description: Model output file from TensorFlow
+          path: model.h5
