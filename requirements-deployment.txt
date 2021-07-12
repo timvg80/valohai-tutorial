@@ -1,4 +1,0 @@
-valohai-utils
-tensorflow==2.4.1
-Pillow
-python-multipart

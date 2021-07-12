@@ -1,30 +1,29 @@
 import tensorflow as tf
 import numpy
-import os
-import argparse
-import json
-
-VH_OUTPUTS_DIR = os.getenv('VH_OUTPUTS_DIR', '.outputs/')
-VH_INPUTS_DIR = os.getenv('VH_INPUTS_DIR', '.inputs/')
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--epoch', type=int, default=10)
-    return parser.parse_args()
+import valohai
 
 def logMetadata(epoch, logs):
-    print()
-    print(json.dumps({
-        'epoch': epoch,
-        'loss': str(logs['loss']),
-        'acc': str(logs['accuracy'])
-    }))
+    with valohai.metadata.logger() as logger:
+        logger.log("epoch", epoch)
+        logger.log("accuracy", logs['accuracy'])
+        logger.log("loss", logs['loss'])
 
-args = parse_args()
+my_parameters = {
+    'epoch': 5
+}
 
-mnist = tf.keras.datasets.mnist
+my_inputs = {
+    'mnist': 's3://onboard-sample/tf-sample/mnist.npz'
+}
 
-mnist_file_path = os.path.join(VH_INPUTS_DIR, 'mnist/mnist.npz')
+valohai.prepare(
+    step="train-model",
+    image='tensorflow/tensorflow:2.4.1',
+    default_parameters=my_parameters,
+    default_inputs=my_inputs
+)
+
+mnist_file_path = valohai.inputs('mnist').path()
 
 with numpy.load(mnist_file_path, allow_pickle=True) as f:
     x_train, y_train = f['x_train'], f['y_train']
@@ -53,7 +52,7 @@ model.compile(optimizer='adam',
             metrics=['accuracy'])
 
 metadataCallback = tf.keras.callbacks.LambdaCallback(on_epoch_end=logMetadata)
-model.fit(x_train, y_train, epochs=args.epoch, callbacks=[metadataCallback])
+model.fit(x_train, y_train, epochs=valohai.parameters('epoch').value, callbacks=[metadataCallback])
 
-save_path = os.path.join(VH_OUTPUTS_DIR, 'model.h5')
+save_path = valohai.outputs().path('model.h5')
 model.save(save_path)
