@@ -1,20 +1,20 @@
 - step:
-    name: train-model
-    image: tensorflow/tensorflow:2.4.1
-    command:
+  name: train-model
+  image: tensorflow/tensorflow:2.4.1
+  command:
     - pip install -r requirements.txt
     - python ./train.py {parameters}
-    parameters:
+  parameters:
     - name: epoch
       default: 5
       multiple-separator: ','
       optional: false
       type: integer
-    inputs:
+  inputs:
     - name: mnist
-      default:
-      - s3://onboard-sample/tf-sample/mnist.npz
+      default: s3://onboard-sample/tf-sample/mnist.npz
       optional: false
+
 - endpoint:
     name: digits
     description: predict digits from image inputs
@@ -24,16 +24,17 @@
         - name: model
           description: Model output file from TensorFlow
           path: model.h5
+
 - pipeline:
-  name: Train and deploy
-  nodes:
-    - name: train-node
-      type: execution
-      step: train-model
-    - name: deploy-node
-      type: deployment
-      deployment: mydeployment
-      endpoints:
-        - digits
-  edges:
-    - [train-node.output.model.h5, deploy-node.file.digits.model]
+    name: Train and deploy
+    nodes:
+      - name: train-node
+        type: execution
+        step: train-model
+      - name: deploy-node
+        type: deployment
+        deployment: mydeployment
+        endpoints:
+          - digits
+    edges:
+      - [train-node.output.model.h5, deploy-node.file.digits.model]
